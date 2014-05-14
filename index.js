@@ -12,6 +12,8 @@ module.exports=function(invalidateTimeInMilliseconds,parameters){
     } else {
         invalidateTimeInMilliseconds=60*1000; //1 minute
     }
+
+    var cache;
     if (parameters && parameters.driver) {
         switch (parameters.driver) {
             case 'memjs':
