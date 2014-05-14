@@ -34,7 +34,7 @@ module.exports=function(invalidateTimeInMilliseconds,parameters){
         if (request.method == 'GET') {
             cache.get(request.originalUrl,function(err,value){
                 if(value){
-                    console.log('FRONT_CACHE HIT: GET '+request.originalUrl);
+                    //console.log('FRONT_CACHE HIT: GET '+request.originalUrl);
                     response.header('Cache-Control', "public, max-age="+Math.floor(invalidateTimeInMilliseconds/1000)+", must-revalidate");
                     response.send(value);
                     return true;
@@ -46,11 +46,11 @@ module.exports=function(invalidateTimeInMilliseconds,parameters){
                         response.on('finish',function(){
                             cache.set(request.originalUrl,chunk,function(err,result){
                                 if(err) throw err;
-                                if(result){
+                                /*if(result){
                                     console.log('FRONT_CACHE SAVED: GET '+request.originalUrl);
                                 } else {
                                     console.log('FRONT_CACHE ERROR SAVING: GET '+request.originalUrl)
-                                }
+                                }*/
                             },invalidateTimeInMilliseconds);
                         });
                         response.header('Cache-Control', "public, max-age="+Math.floor(invalidateTimeInMilliseconds/1000)+", must-revalidate");
