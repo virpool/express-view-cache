@@ -49,7 +49,6 @@ module.exports = function (invalidateTimeInMilliseconds, parameters) {
             var targetKey = (parameters.createCacheKey || createCacheKeyDefault)(request);
             cache.get(targetKey, function (err, value) {
                 if (value) {
-                    //console.log('FRONT_CACHE HIT: GET '+targetKey);
                     if (rawJSON) {
                         value = JSON.parse(value); // TODO: figure about it
                     }
@@ -93,9 +92,11 @@ module.exports = function (invalidateTimeInMilliseconds, parameters) {
 
                 var data = isNaN(status) ? status : body;
                 response.on('finish', function () {
-                    cache.set(targetKey, JSON.stringify(data), function (err, result) {
-                        if (err) throw err;
-                    }, invalidateTimeInMilliseconds);
+                    if (data) {
+                        cache.set(targetKey, JSON.stringify(data), function (err, result) {
+                            if (err) throw err;
+                        }, invalidateTimeInMilliseconds);
+                    }
                 });
                 response.header('Cache-Control', "public, max-age="+Math.floor(invalidateTimeInMilliseconds/1000)+", must-revalidate");
                 response[method].apply(response, arguments);
