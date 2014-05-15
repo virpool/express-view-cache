@@ -9,6 +9,10 @@ function createCacheKeyDefault(request) {
     return request.originalUrl;
 }
 
+function isFunction(obj) {
+    return !!(obj && obj.call && obj.apply);
+}
+
 module.exports = function (invalidateTimeInMilliseconds, parameters) {
     if (!invalidateTimeInMilliseconds || isNaN(invalidateTimeInMilliseconds)) {
         invalidateTimeInMilliseconds = 60*1000; //1 minute
@@ -36,6 +40,8 @@ module.exports = function (invalidateTimeInMilliseconds, parameters) {
         rawJSON     = !!parameters.rawJSON;
 
     return function (request, response, next) {
+        if (isFunction(parameters.filter) && parameters.filter(request) === false) return next();
+
         if (parameters.type) {
             response.type(parameters.type);
         }
