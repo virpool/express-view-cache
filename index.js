@@ -36,7 +36,7 @@ module.exports = function (invalidateTimeInMilliseconds, parameters) {
         cache = adapterMemory;
     }
 
-    var sendMethod  = parameters.jsonp ? 'jsonp' : 'send',
+    var sendMethod  = !!parameters.jsonp ? 'jsonp' : 'send',
         rawJSON     = !!parameters.rawJSON;
 
     return function (request, response, next) {
@@ -57,29 +57,14 @@ module.exports = function (invalidateTimeInMilliseconds, parameters) {
                     response[sendMethod](value);
                     return true;
                 } else if (rawJSON) {
-                    var jsonp = response.jsonp;
-                    response.jsonp = function (status, body) {
-                        response.jsonp = jsonp;
-
-                        var data = isNaN(status) ? status : body;
-                        response.on('finish', function () {
-                            cache.set(targetKey, JSON.stringify(data), function (err, result) {
-                                if (err) throw err;
-                            }, invalidateTimeInMilliseconds);
-                        });
-                        response.header('Cache-Control', "public, max-age="+Math.floor(invalidateTimeInMilliseconds/1000)+", must-revalidate");
-                        if (body) {
-                            response.jsonp(status, body);
-                        } else {
-                            response.jsonp(status);
-                        }
-                    };
+                    createSendProxy(!!parameters.jsonp ? 'jsonp' : 'json');
                     return next();
                 } else {
                     //http://stackoverflow.com/questions/13690335/node-js-express-simple-middleware-to-output-first-few-characters-of-response?rq=1
                     var end = response.end;
                     response.end = function (chunk, encoding) {
                         response.end = end;
+                        end = null;
                         response.on('finish', function () {
                             cache.set(targetKey, chunk, function (err, result) {
                                 if (err) throw err;
@@ -98,6 +83,23 @@ module.exports = function (invalidateTimeInMilliseconds, parameters) {
             });
         } else {
             return next();
+        }
+
+        function createSendProxy(method) {
+            var previous = response[method];
+            response[method] = function (status, body) {
+                response[method] = previous;
+                previous = null;
+
+                var data = isNaN(status) ? status : body;
+                response.on('finish', function () {
+                    cache.set(targetKey, JSON.stringify(data), function (err, result) {
+                        if (err) throw err;
+                    }, invalidateTimeInMilliseconds);
+                });
+                response.header('Cache-Control', "public, max-age="+Math.floor(invalidateTimeInMilliseconds/1000)+", must-revalidate");
+                response[method].apply(response, arguments);
+            };
         }
     }
 }
